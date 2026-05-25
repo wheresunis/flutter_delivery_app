@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../widgets/postal_office_card.dart';
 
-class BranchesScreen extends StatelessWidget {
+class BranchesScreen extends StatefulWidget {
   const BranchesScreen({super.key});
 
   static const _initialSheetSize = 0.33;
   static const _minSheetSize = 0.24;
   static const _maxSheetSize = 0.88;
+
+  static const _buttonHideThreshold = _initialSheetSize + 0.02;
 
   static const _branches = [
     (
@@ -16,6 +18,13 @@ class BranchesScreen extends StatelessWidget {
       workingHours: '08:00 - 20:00',
     ),
   ];
+
+  @override
+  State<BranchesScreen> createState() => _BranchesScreenState();
+}
+
+class _BranchesScreenState extends State<BranchesScreen> {
+  bool _isSheetExpanded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -104,12 +113,26 @@ class BranchesScreen extends StatelessWidget {
                       color: AppColors.purple,
                     ),
                   ),
-                  DraggableScrollableSheet(
-                    initialChildSize: _initialSheetSize,
-                    minChildSize: _minSheetSize,
-                    maxChildSize: _maxSheetSize,
+                  NotificationListener<DraggableScrollableNotification>(
+                    onNotification: (notification) {
+                      final isExpanded =
+                          notification.extent > BranchesScreen._buttonHideThreshold;
+                      if (isExpanded != _isSheetExpanded) {
+                        setState(() {
+                          _isSheetExpanded = isExpanded;
+                        });
+                      }
+                      return false;
+                    },
+                    child: DraggableScrollableSheet(
+                    initialChildSize: BranchesScreen._initialSheetSize,
+                    minChildSize: BranchesScreen._minSheetSize,
+                    maxChildSize: BranchesScreen._maxSheetSize,
                     snap: true,
-                    snapSizes: const [_initialSheetSize, _maxSheetSize],
+                    snapSizes: const [
+                      BranchesScreen._initialSheetSize,
+                      BranchesScreen._maxSheetSize,
+                    ],
                     builder: (context, scrollController) {
                       return Container(
                         padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
@@ -140,15 +163,14 @@ class BranchesScreen extends StatelessWidget {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(height: 20),
                             Expanded(
                               child: ListView.separated(
                                 controller: scrollController,
-                                itemCount: _branches.length,
+                                itemCount: BranchesScreen._branches.length,
                                 separatorBuilder: (_, __) =>
                                     const SizedBox(height: 12),
                                 itemBuilder: (context, index) {
-                                  final branch = _branches[index];
+                                  final branch = BranchesScreen._branches[index];
                                   return PostalOfficeCard(
                                     branchNumber: branch.branchNumber,
                                     address: branch.address,
@@ -162,20 +184,30 @@ class BranchesScreen extends StatelessWidget {
                       );
                     },
                   ),
+                  ),
                   Positioned(
                     right: 20,
-                    bottom: constraints.maxHeight * _initialSheetSize + 20,
-                    child: Material(
-                      color: Colors.white,
-                      shape: const CircleBorder(),
-                      elevation: 6,
-                      child: IconButton(
-                        onPressed: () {},
-                        icon: const Icon(
-                          Icons.my_location,
-                          color: AppColors.purple,
+                    bottom:
+                        constraints.maxHeight * BranchesScreen._initialSheetSize +
+                            20,
+                    child: IgnorePointer(
+                      ignoring: _isSheetExpanded,
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 180),
+                        opacity: _isSheetExpanded ? 0 : 1,
+                        child: Material(
+                          color: Colors.white,
+                          shape: const CircleBorder(),
+                          elevation: 6,
+                          child: IconButton(
+                            onPressed: () {},
+                            icon: const Icon(
+                              Icons.my_location,
+                              color: AppColors.purple,
+                            ),
+                            tooltip: 'Моє місцезнаходження',
+                          ),
                         ),
-                        tooltip: 'Моє місцезнаходження',
                       ),
                     ),
                   ),
