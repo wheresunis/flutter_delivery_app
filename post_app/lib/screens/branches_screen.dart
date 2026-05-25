@@ -1,8 +1,21 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../widgets/postal_office_card.dart';
 
 class BranchesScreen extends StatelessWidget {
   const BranchesScreen({super.key});
+
+  static const _initialSheetSize = 0.33;
+  static const _minSheetSize = 0.24;
+  static const _maxSheetSize = 0.88;
+
+  static const _branches = [
+    (
+      branchNumber: '№1',
+      address: 'вул. Хрещатик, 1',
+      workingHours: '08:00 - 20:00',
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -58,104 +71,116 @@ class BranchesScreen extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Stack(
-              children: [
-                Container(
-                  color: const Color(0xFFF2F7F5),
-                ),
-                const Positioned(
-                  top: 120,
-                  left: 180,
-                  child: Icon(
-                    Icons.location_on,
-                    size: 48,
-                    color: AppColors.purple,
+            child: LayoutBuilder(
+              builder: (context, constraints) => Stack(
+                children: [
+                  Container(
+                    color: const Color(0xFFF2F7F5),
                   ),
-                ),
-                const Positioned(
-                  top: 250,
-                  left: 240,
-                  child: Icon(
-                    Icons.location_on,
-                    size: 48,
-                    color: AppColors.purple,
-                  ),
-                ),
-                const Positioned(
-                  top: 380,
-                  left: 120,
-                  child: Icon(
-                    Icons.location_on,
-                    size: 48,
-                    color: AppColors.purple,
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Container(
-                    height: 260,
-                    padding: const EdgeInsets.all(24),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(32),
-                      ),
+                  const Positioned(
+                    top: 120,
+                    left: 180,
+                    child: Icon(
+                      Icons.location_on,
+                      size: 48,
+                      color: AppColors.purple,
                     ),
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                      children: [
-                        Center(
-                          child: Container(
-                            width: 60,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade300,
-                              borderRadius:
-                                  BorderRadius.circular(20),
-                            ),
+                  ),
+                  const Positioned(
+                    top: 250,
+                    left: 240,
+                    child: Icon(
+                      Icons.location_on,
+                      size: 48,
+                      color: AppColors.purple,
+                    ),
+                  ),
+                  const Positioned(
+                    top: 380,
+                    left: 120,
+                    child: Icon(
+                      Icons.location_on,
+                      size: 48,
+                      color: AppColors.purple,
+                    ),
+                  ),
+                  DraggableScrollableSheet(
+                    initialChildSize: _initialSheetSize,
+                    minChildSize: _minSheetSize,
+                    maxChildSize: _maxSheetSize,
+                    snap: true,
+                    snapSizes: const [_initialSheetSize, _maxSheetSize],
+                    builder: (context, scrollController) {
+                      return Container(
+                        padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(32),
                           ),
                         ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'Відділення поблизу',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Container(
-                          padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius:
-                                BorderRadius.circular(18),
-                          ),
-                          child: const Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '№1',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight:
-                                      FontWeight.bold,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Center(
+                              child: Container(
+                                width: 60,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade300,
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
                               ),
-                              SizedBox(height: 8),
-                              Text('вул. Хрещатик, 1'),
-                              SizedBox(height: 6),
-                              Text('08:00 - 20:00'),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(height: 24),
+                            const Text(
+                              'Відділення поблизу',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Expanded(
+                              child: ListView.separated(
+                                controller: scrollController,
+                                itemCount: _branches.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 12),
+                                itemBuilder: (context, index) {
+                                  final branch = _branches[index];
+                                  return PostalOfficeCard(
+                                    branchNumber: branch.branchNumber,
+                                    address: branch.address,
+                                    workingHours: branch.workingHours,
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      );
+                    },
+                  ),
+                  Positioned(
+                    right: 20,
+                    bottom: constraints.maxHeight * _initialSheetSize + 20,
+                    child: Material(
+                      color: Colors.white,
+                      shape: const CircleBorder(),
+                      elevation: 6,
+                      child: IconButton(
+                        onPressed: () {},
+                        icon: const Icon(
+                          Icons.my_location,
+                          color: AppColors.purple,
+                        ),
+                        tooltip: 'Моє місцезнаходження',
+                      ),
                     ),
                   ),
-                )
-              ],
+                ],
+              ),
             ),
           ),
         ],
