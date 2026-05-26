@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../theme/app_colors.dart';
@@ -12,9 +14,19 @@ class BranchesScreen extends StatefulWidget {
   static const _minSheetSize = 0.22;
   static const _maxSheetSize = 0.78;
   static const _buttonHideThreshold = _initialSheetSize + 0.03;
-  static const _courierLocation = LatLng(50.446916, 30.515074);
-  static const _deliveryAddress = LatLng(50.451372, 30.524776);
-  static const _deliveryAddressText = 'вул. Велика Васильківська, 24';
+  static const _userAddress = LatLng(50.451372, 30.524776);
+  static const _userAddressText = 'вул. Велика Васильківська, 24';
+
+  // Set this to false when there is no active shipment in transit.
+  static const _hasActiveDelivery = true;
+  static const _mockActiveDelivery = _ActiveDelivery(
+    orderNumber: '20450123456789',
+    courierLocation: LatLng(50.446916, 30.515074),
+    etaText: '7 хв',
+  );
+  static _ActiveDelivery? get _activeDelivery {
+    return _hasActiveDelivery ? _mockActiveDelivery : null;
+  }
 
   static const _branches = <_Branch>[
     _Branch(
@@ -55,25 +67,31 @@ class _BranchesScreenState extends State<BranchesScreen> {
   _Branch get _selectedBranch => BranchesScreen._branches[_selectedBranchIndex];
 
   Set<Marker> get _markers {
+    final activeDelivery = BranchesScreen._activeDelivery;
+
     return {
       Marker(
-        markerId: const MarkerId('courier'),
-        position: BranchesScreen._courierLocation,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-        infoWindow: const InfoWindow(
-          title: 'Кур’єр',
-          snippet: 'Прямує до адреси доставки',
-        ),
-      ),
-      Marker(
-        markerId: const MarkerId('delivery-address'),
-        position: BranchesScreen._deliveryAddress,
+        markerId: const MarkerId('my-address'),
+        position: BranchesScreen._userAddress,
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
         infoWindow: const InfoWindow(
-          title: 'Адреса доставки',
-          snippet: BranchesScreen._deliveryAddressText,
+          title: 'Моя адреса',
+          snippet: BranchesScreen._userAddressText,
         ),
       ),
+      if (activeDelivery != null)
+        Marker(
+          markerId: const MarkerId('courier'),
+          position: activeDelivery.courierLocation,
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueAzure,
+          ),
+          infoWindow: InfoWindow(
+            title: 'Кур’єр',
+            snippet:
+                '${_formatDistance(activeDelivery.courierLocation, BranchesScreen._userAddress)} від вас',
+          ),
+        ),
       for (var i = 0; i < BranchesScreen._branches.length; i++)
         Marker(
           markerId: MarkerId('branch-$i'),
@@ -93,14 +111,16 @@ class _BranchesScreenState extends State<BranchesScreen> {
   }
 
   Set<Polyline> get _polylines {
+    final activeDelivery = BranchesScreen._activeDelivery;
+
+    if (activeDelivery == null) {
+      return {};
+    }
+
     return {
       Polyline(
         polylineId: const PolylineId('courier-route'),
-        points: [
-          BranchesScreen._courierLocation,
-          _selectedBranch.position,
-          BranchesScreen._deliveryAddress,
-        ],
+        points: [activeDelivery.courierLocation, BranchesScreen._userAddress],
         color: AppColors.purple,
         width: 6,
         geodesic: true,
@@ -149,15 +169,18 @@ class _BranchesScreenState extends State<BranchesScreen> {
                         },
                         markers: _markers,
                         polylines: _polylines,
+                        activeDelivery: BranchesScreen._activeDelivery,
                       ),
                     ),
                     Positioned(
                       left: 16,
                       right: 16,
                       top: 16,
-                      child: _DeliveryRouteCard(
+                      child: _MapStatusCard(
                         selectedBranch: _selectedBranch,
-                        deliveryAddress: BranchesScreen._deliveryAddressText,
+                        userAddress: BranchesScreen._userAddressText,
+                        activeDelivery: BranchesScreen._activeDelivery,
+                        branchesCount: BranchesScreen._branches.length,
                       ),
                     ),
                     NotificationListener<DraggableScrollableNotification>(
@@ -239,6 +262,7 @@ class _MapSurface extends StatelessWidget {
     required this.onMapCreated,
     required this.markers,
     required this.polylines,
+    required this.activeDelivery,
   });
 
   final _Branch selectedBranch;
@@ -246,6 +270,7 @@ class _MapSurface extends StatelessWidget {
   final ValueChanged<GoogleMapController> onMapCreated;
   final Set<Marker> markers;
   final Set<Polyline> polylines;
+  final _ActiveDelivery? activeDelivery;
 
   @override
   Widget build(BuildContext context) {
@@ -253,6 +278,7 @@ class _MapSurface extends StatelessWidget {
       return _WebMapPreview(
         selectedBranch: selectedBranch,
         selectedBranchIndex: selectedBranchIndex,
+        activeDelivery: activeDelivery,
       );
     }
 
@@ -276,10 +302,12 @@ class _WebMapPreview extends StatelessWidget {
   const _WebMapPreview({
     required this.selectedBranch,
     required this.selectedBranchIndex,
+    required this.activeDelivery,
   });
 
   final _Branch selectedBranch;
   final int selectedBranchIndex;
+  final _ActiveDelivery? activeDelivery;
 
   @override
   Widget build(BuildContext context) {
@@ -291,16 +319,17 @@ class _WebMapPreview extends StatelessWidget {
           children: [
             Positioned.fill(
               child: CustomPaint(
-                painter: _WebMapPainter(selectedBranch: selectedBranch),
+                painter: _WebMapPainter(activeDelivery: activeDelivery),
               ),
             ),
+            if (activeDelivery != null)
+              _WebMapMarker(
+                offset: _projectToMap(activeDelivery!.courierLocation, size),
+                color: AppColors.blue,
+                icon: Icons.delivery_dining_rounded,
+              ),
             _WebMapMarker(
-              offset: _projectToMap(BranchesScreen._courierLocation, size),
-              color: AppColors.blue,
-              icon: Icons.delivery_dining_rounded,
-            ),
-            _WebMapMarker(
-              offset: _projectToMap(BranchesScreen._deliveryAddress, size),
+              offset: _projectToMap(BranchesScreen._userAddress, size),
               color: AppColors.purple,
               icon: Icons.home_rounded,
             ),
@@ -365,12 +394,14 @@ class _WebMapMarker extends StatelessWidget {
 }
 
 class _WebMapPainter extends CustomPainter {
-  const _WebMapPainter({required this.selectedBranch});
+  const _WebMapPainter({required this.activeDelivery});
 
-  final _Branch selectedBranch;
+  final _ActiveDelivery? activeDelivery;
 
   @override
   void paint(Canvas canvas, Size size) {
+    final activeDelivery = this.activeDelivery;
+
     canvas.drawRect(
       Offset.zero & size,
       Paint()..color = AppColors.mapBackground,
@@ -436,43 +467,37 @@ class _WebMapPainter extends CustomPainter {
       canvas.drawPath(road, roadLinePaint);
     }
 
-    final route = Path()
-      ..moveTo(
-        _projectToMap(BranchesScreen._courierLocation, size).dx,
-        _projectToMap(BranchesScreen._courierLocation, size).dy,
-      )
-      ..lineTo(
-        _projectToMap(selectedBranch.position, size).dx,
-        _projectToMap(selectedBranch.position, size).dy,
-      )
-      ..lineTo(
-        _projectToMap(BranchesScreen._deliveryAddress, size).dx,
-        _projectToMap(BranchesScreen._deliveryAddress, size).dy,
-      );
+    if (activeDelivery != null) {
+      final courierPoint = _projectToMap(activeDelivery.courierLocation, size);
+      final userPoint = _projectToMap(BranchesScreen._userAddress, size);
+      final route = Path()
+        ..moveTo(courierPoint.dx, courierPoint.dy)
+        ..lineTo(userPoint.dx, userPoint.dy);
 
-    canvas.drawPath(
-      route,
-      Paint()
-        ..color = AppColors.purple.withValues(alpha: 0.18)
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..strokeWidth = 14,
-    );
-    canvas.drawPath(
-      route,
-      Paint()
-        ..color = AppColors.purple
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..strokeWidth = 5,
-    );
+      canvas.drawPath(
+        route,
+        Paint()
+          ..color = AppColors.purple.withValues(alpha: 0.18)
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..strokeWidth = 14,
+      );
+      canvas.drawPath(
+        route,
+        Paint()
+          ..color = AppColors.purple
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..strokeWidth = 5,
+      );
+    }
   }
 
   @override
   bool shouldRepaint(covariant _WebMapPainter oldDelegate) {
-    return oldDelegate.selectedBranch != selectedBranch;
+    return oldDelegate.activeDelivery != activeDelivery;
   }
 }
 
@@ -494,17 +519,28 @@ Offset _projectToMap(LatLng point, Size size) {
   );
 }
 
-class _DeliveryRouteCard extends StatelessWidget {
-  const _DeliveryRouteCard({
+class _MapStatusCard extends StatelessWidget {
+  const _MapStatusCard({
     required this.selectedBranch,
-    required this.deliveryAddress,
+    required this.userAddress,
+    required this.activeDelivery,
+    required this.branchesCount,
   });
 
   final _Branch selectedBranch;
-  final String deliveryAddress;
+  final String userAddress;
+  final _ActiveDelivery? activeDelivery;
+  final int branchesCount;
 
   @override
   Widget build(BuildContext context) {
+    final activeDelivery = this.activeDelivery;
+    final hasCourier = activeDelivery != null;
+    final title = hasCourier ? 'Кур’єр у дорозі' : 'Моя адреса';
+    final subtitle = hasCourier
+        ? 'Замовлення ${activeDelivery.orderNumber} • ${_formatDistance(activeDelivery.courierLocation, BranchesScreen._userAddress)} від вас • ${activeDelivery.etaText}'
+        : '$userAddress • $branchesCount відділення поруч • найближче ${selectedBranch.branchNumber}';
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -528,8 +564,8 @@ class _DeliveryRouteCard extends StatelessWidget {
                 gradient: AppColors.gradient,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
-                Icons.route_rounded,
+              child: Icon(
+                hasCourier ? Icons.delivery_dining_rounded : Icons.home_rounded,
                 color: Colors.white,
                 size: 22,
               ),
@@ -540,9 +576,9 @@ class _DeliveryRouteCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'Маршрут кур’єра',
-                    style: TextStyle(
+                  Text(
+                    title,
+                    style: const TextStyle(
                       color: AppColors.ink,
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
@@ -550,7 +586,7 @@ class _DeliveryRouteCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${selectedBranch.address} → $deliveryAddress',
+                    subtitle,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -745,4 +781,47 @@ class _Branch {
   final String distance;
   final String workload;
   final LatLng position;
+}
+
+class _ActiveDelivery {
+  const _ActiveDelivery({
+    required this.orderNumber,
+    required this.courierLocation,
+    required this.etaText,
+  });
+
+  final String orderNumber;
+  final LatLng courierLocation;
+  final String etaText;
+}
+
+String _formatDistance(LatLng start, LatLng end) {
+  final meters = _distanceInMeters(start, end);
+  if (meters < 1000) {
+    return '${meters.round()} м';
+  }
+
+  return '${(meters / 1000).toStringAsFixed(1)} км';
+}
+
+double _distanceInMeters(LatLng start, LatLng end) {
+  const earthRadius = 6371000.0;
+  final startLat = _toRadians(start.latitude);
+  final endLat = _toRadians(end.latitude);
+  final deltaLat = _toRadians(end.latitude - start.latitude);
+  final deltaLng = _toRadians(end.longitude - start.longitude);
+
+  final haversine =
+      math.sin(deltaLat / 2) * math.sin(deltaLat / 2) +
+      math.cos(startLat) *
+          math.cos(endLat) *
+          math.sin(deltaLng / 2) *
+          math.sin(deltaLng / 2);
+  final arc = 2 * math.atan2(math.sqrt(haversine), math.sqrt(1 - haversine));
+
+  return earthRadius * arc;
+}
+
+double _toRadians(double degrees) {
+  return degrees * math.pi / 180;
 }
