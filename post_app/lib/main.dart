@@ -15,7 +15,12 @@ class PurpleDeliveryApp extends StatelessWidget {
       title: 'Purple Delivery',
       theme: ThemeData(
         fontFamily: 'Roboto',
-        scaffoldBackgroundColor: Colors.white,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF9D18F4),
+          primary: const Color(0xFF9D18F4),
+        ),
+        scaffoldBackgroundColor: const Color(0xFFF7F5FB),
+        useMaterial3: true,
       ),
       home: const LoadScreen(),
     );
