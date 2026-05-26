@@ -9,9 +9,9 @@ class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   void _openBranches(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const BranchesScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const BranchesScreen()));
   }
 
   @override
@@ -33,18 +33,12 @@ class HomeScreen extends StatelessWidget {
             activeIcon: Icon(Icons.home_rounded),
             label: 'Головна',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Пошук',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Пошук'),
           BottomNavigationBarItem(
             icon: Icon(Icons.add_circle_outline),
             label: 'Створити',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'Історія',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Історія'),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             label: 'Профіль',
@@ -216,10 +210,7 @@ class _HomeHeader extends StatelessWidget {
 }
 
 class _HeaderIconButton extends StatelessWidget {
-  const _HeaderIconButton({
-    required this.icon,
-    required this.onPressed,
-  });
+  const _HeaderIconButton({required this.icon, required this.onPressed});
 
   final IconData icon;
   final VoidCallback onPressed;
@@ -275,10 +266,7 @@ class _MapShortcutCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     const Text(
                       'Знайдіть найближчу точку на мапі',
-                      style: TextStyle(
-                        color: AppColors.muted,
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: AppColors.muted, fontSize: 12),
                     ),
                     const Spacer(),
                     Row(

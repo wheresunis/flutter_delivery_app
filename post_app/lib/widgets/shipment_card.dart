@@ -28,9 +28,7 @@ class ShipmentCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.line,
-        ),
+        border: Border.all(color: AppColors.line),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -70,7 +68,7 @@ class ShipmentCard extends StatelessWidget {
                     fontSize: 11,
                   ),
                 ),
-              )
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -79,10 +77,7 @@ class ShipmentCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   route,
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: AppColors.muted, fontSize: 12),
                 ),
               ),
               Text(

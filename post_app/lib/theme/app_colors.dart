@@ -13,10 +13,7 @@ class AppColors {
   static const warning = Color(0xFFFF9A1F);
 
   static const gradient = LinearGradient(
-    colors: [
-      purple,
-      blue,
-    ],
+    colors: [purple, blue],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

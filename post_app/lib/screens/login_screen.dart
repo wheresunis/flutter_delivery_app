@@ -77,7 +77,9 @@ class LoginScreen extends StatelessWidget {
                         text: 'Увійти',
                         onPressed: () {
                           Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (_) => const HomeScreen()),
+                            MaterialPageRoute(
+                              builder: (_) => const HomeScreen(),
+                            ),
                           );
                         },
                       ),
@@ -164,10 +166,7 @@ class _AuthField extends StatelessWidget {
           fontSize: 13,
           fontWeight: FontWeight.w600,
         ),
-        hintStyle: const TextStyle(
-          color: AppColors.muted,
-          fontSize: 13,
-        ),
+        hintStyle: const TextStyle(color: AppColors.muted, fontSize: 13),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
           vertical: 14,

@@ -34,11 +34,7 @@ class QuickActionItem extends StatelessWidget {
                     color: AppColors.purple.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    icon,
-                    color: AppColors.purple,
-                    size: 22,
-                  ),
+                  child: Icon(icon, color: AppColors.purple, size: 22),
                 ),
                 const SizedBox(height: 7),
                 Text(
